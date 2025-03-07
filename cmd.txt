@@ -1,0 +1,3 @@
+- black (outil de formatage de code)
+- mypy (outil de vérification de typage)
+- pylint (logiciel de qualimétrie de code) : pylint --disable C0111 mon_fichier.py
