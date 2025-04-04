@@ -32,7 +32,7 @@
 >   - Il suffit d'avoir un at_lest_one de chaque valeur sur "chaque carré"
 > - 9 valeurs sur 9 cases du carré : **81 clauses**
 
-> **Total de 3270 clauses**
+> **Total de 3240 clauses + Le nombre de faits que l'on a déjà**
 
 ## Comment représenter la grille
 > On représente la grille en 2 couches
