@@ -50,7 +50,7 @@ Dans cette représentation, la position est donnée par (i * 3 + i', j * 3 + j')
 > - ...
 > - 8 en (0, 8) = 81
 >
-> Les variables sont donc données selon (i * 81 + j * 9 + v + 1) = **(i * 9 + j) + v + 1** avec v la valeur, i la ligne et j la colonne
+> Les variables sont donc données selon (i * 81 + j * 9 + v + 1) = **(i * 9 + j) * 9 + v + 1** avec v la valeur, i la ligne et j la colonne
 
 ## 4. Comment peut-on intégrer les valeurs d’une grille donnée à la précédente modélisation ?
 > Pour intégrer nos faits (valeurs données) à la grille, il suffit d'ajouter (conjonction) la présence du numéro v sur la colonne j et ligne i
