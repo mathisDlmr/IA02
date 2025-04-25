@@ -6,6 +6,8 @@ résoudre le problème de coloration de graphe (https://fr.wikipedia.org/wiki/Co
 """
 
 import subprocess
+import matplotlib.pyplot as plt
+import networkx as nx
 
 def lecture_graphe()->(list[int],list[(int,int)]):
     nb_sommets = int(input("Nombre de sommets du graphe : "))
@@ -54,9 +56,34 @@ def encodage_cnf(sommets:list[int], graphe:list[(int,int)])->None:
     r = subprocess.run("./gophersat ./TP2/ex3.cnf".split(), capture_output=True, text=True)
     print(r.stdout)
 
+    lines = r.stdout.splitlines()
+    solution_line = next((line for line in lines if line.startswith('v')), "")
+    solution = [int(x) for x in solution_line.split()[1:] if x != '0']
+    
+    color_map = {}
+    for var, idx in variables.items():
+        idx = int(idx)
+        if idx in solution:
+            sommet = int(var[1:-1])
+            couleur = var[-1]
+            if couleur == 'R':
+                color_map[sommet] = 'red'
+            elif couleur == 'V':
+                color_map[sommet] = 'green'
+            elif couleur == 'B':
+                color_map[sommet] = 'blue'
+
+    G = nx.Graph()
+    G.add_nodes_from(sommets)
+    G.add_edges_from(graphe)
+    node_colors = [color_map.get(node, 'gray') for node in G.nodes()]
+    nx.draw(G, with_labels=True, node_color=node_colors, edge_color='black')
+    plt.show()
+
 def main()->None:
-    (sommets, graphe) = lecture_graphe()
-    encodage_cnf(sommets, graphe)
+    #(sommets, graphe) = lecture_graphe()
+    #encodage_cnf(sommets, graphe)
+    encodage_cnf([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [(1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (2, 7), (3, 8), (4, 9), (5, 10), (6, 8), (8, 10), (10, 7), (7, 9), (9, 6), (5, 1)])
 
 if __name__ == "__main__":
     main()
