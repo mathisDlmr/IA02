@@ -1,6 +1,7 @@
 from typing import List, Tuple, Callable
 import ast
 import random
+from functools import lru_cache # Cache pour l'optimisation
 
 # Optionnel
 import itertools as it
@@ -45,10 +46,10 @@ GRID_4: Grid = ((0, 0, 0), (X, X, O), (0, 0, 0))
 GRID_5: Grid = ((0, O, O), (X, O, X), (O, 0, 0))
 
 def grid_tuple_to_grid_list(grid: Grid) -> list[list[int]]:
-    return [list(tuple) for tuple in [mother_tuple for mother_tuple in grid]]
+    return [list(row) for row in grid]
 
 def grid_list_to_grid_tuple(grid: list[list[int]]) -> Grid:
-    return tuple([tuple(liste) for liste in [mother_liste for mother_liste in grid]])
+    return tuple(tuple(row) for row in grid)
 
 def legals(grid: State) -> list[Action]:
     legs : list[Action] = []
@@ -81,10 +82,9 @@ def check_cols(grid: State, player: Player) -> bool:
     return False
 
 def check_diags(grid: State, player: Player) -> bool:
-    count: int = 0
-    if(grid[i][i] == player for i in range (3)):
+    if all(grid[i][i] == player for i in range(3)):
         return True
-    if(grid[i][2-i] == player for i in range (3)):
+    if all(grid[i][2-i] == player for i in range(3)):
         return True
     return False
 
@@ -92,7 +92,7 @@ def line(grid: State, player: Player) -> bool:
     return check_lines(grid, player) or check_cols(grid, player) or check_diags(grid, player)
 
 def final(grid: State) -> bool:
-    full:bool = (grid[i][j] != 0 for i, j in[range(3), range(3)])
+    full = all(grid[i][j] != 0 for i in range(3) for j in range(3))
     return full or line(grid, X) or line(grid, O)
 
 def score(grid: State) -> Score:
@@ -123,12 +123,14 @@ def tictactoe(strategy_X: Strategy, strategy_O: Strategy, debug: bool = False) -
     grid: State = EMPTY_GRID
     pprint(grid)
     player: Player = X
-    while(final(grid)!=False):
+    while not final(grid):
         if player == X:
-            play(grid, X, strategy_X(grid, X))
+            action = strategy_X(grid, X)
+            grid = play(grid, X, action)
             player = O
         else: 
-            play(grid, O, strategy_O(grid, O))
+            action = strategy_O(grid, O)
+            grid = play(grid, O, action)
             player = X
         pprint(grid)
     return score(grid)
@@ -140,27 +142,78 @@ def strategy_random(grid: State, player: Player) -> Action:
     legs: list[Action] = legals(grid)
     return (legs[random.randint(0, len(legs)-1)])
 
+@lru_cache(maxsize=None)
 def minmax(grid: State, player: Player) -> Score:
-    pass # Écrire la fonction minmax qui étant donné un état de jeu renvoie le score optimal de la partie.
+    if final(grid):
+        return score(grid)
+    scores = []
+    for action in legals(grid):
+        next_grid = play(grid, player, action)
+        next_score = minmax(next_grid, 3 - player)  # 3-player inverse 1->2 ou 2->1
+        scores.append(next_score)
+    if player == X:
+        return max(scores)
+    else:
+        return min(scores)
 
+@lru_cache(maxsize=None)
 def minmax_action(grid: State, player: Player, depth: int = 0) -> tuple[Score, Action]:
-    pass # Écrire la fonction minmax qui étant donné un état de jeu renvoie sous forme de tuple l'action amenant au score optimal de la partie et ce score.
+    if final(grid):
+        return (score(grid), (-1, -1)) 
+    best_score = float('-inf') if player == X else float('inf')
+    best_action = None
+    for action in legals(grid):
+        next_grid = play(grid, player, action)
+        next_score, _ = minmax_action(next_grid, 3 - player, depth + 1)
+        if (player == X and next_score > best_score) or (player == O and next_score < best_score):
+            best_score = next_score
+            best_action = action
+    return (best_score, best_action)
 
 def strategy_minmax(grid: State, player: Player) -> Action:
-    pass # En déduire la fonction suivante.
+    return minmax_action(grid, player)[1]
 
+@lru_cache(maxsize=None)
 def minmax_actions(grid: State, player: Player, depth: int = 0) -> tuple[Score, list[Action]]:
-    pass # Écrire la fonction minmax qui étant donné un état de jeu renvoie dans un tuple les actions amenant au score optimal de la partie et ce score.
+    if final(grid):
+        return (score(grid), [])
+    best_score = float('-inf') if player == X else float('inf')
+    best_actions = []
+    for action in legals(grid):
+        next_grid = play(grid, player, action)
+        next_score, _ = minmax_actions(next_grid, 3 - player, depth + 1)
+        if player == X:
+            if next_score > best_score:
+                best_score = next_score
+                best_actions = [action]
+            elif next_score == best_score:
+                best_actions.append(action)
+        else:
+            if next_score < best_score:
+                best_score = next_score
+                best_actions = [action]
+            elif next_score == best_score:
+                best_actions.append(action)
+    return (best_score, best_actions)
 
-# Utiliser cette fonction pour créer un minmax indéterministe.
 def strategy_minmax_random(grid: State, player: Player) -> Action:
-    pass
+    _, actions = minmax_actions(grid, player)
+    return random.choice(actions)
 
-# Ajouter un cache aux fonctions précédentes en utilisant le pattern de mémoïsation.
-# Mesurer le résultat avec time
+def test_performance(strategy: Strategy):
+    start = time.time()
+    result = tictactoe(strategy, strategy, debug=False)
+    end = time.time()
+    print(f"Score: {result}, Temps de calcul : {end - start:.4f} secondes")
 
 def main():
-    tictactoe(strategy_first_legal,strategy_random)
+    print("Test sans cache (first legal vs random):")
+    tictactoe(strategy_first_legal, strategy_random)
+    print("\nTest minmax avec cache (minmax vs minmax):")
+    test_performance(strategy_minmax)
+    print("\nTest minmax_random avec cache (minmax_random vs minmax_random):")
+    test_performance(strategy_minmax_random)
+
 
 if __name__ == "__main__":
     main()
