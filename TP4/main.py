@@ -1,7 +1,6 @@
 from typing import List, Tuple, Callable
 import ast
 import random
-from functools import lru_cache # Cache pour l'optimisation
 
 # Optionnel
 import itertools as it
@@ -142,7 +141,6 @@ def strategy_random(grid: State, player: Player) -> Action:
     legs: list[Action] = legals(grid)
     return (legs[random.randint(0, len(legs)-1)])
 
-@lru_cache(maxsize=None)
 def minmax(grid: State, player: Player) -> Score:
     if final(grid):
         return score(grid)
@@ -155,8 +153,8 @@ def minmax(grid: State, player: Player) -> Score:
         return max(scores)
     else:
         return min(scores)
-
-@lru_cache(maxsize=None)
+    
+# Etant donné un état de jeu renvoie sous forme de tuple l'action amenant au score optimal de la partie et ce score
 def minmax_action(grid: State, player: Player, depth: int = 0) -> tuple[Score, Action]:
     if final(grid):
         return (score(grid), (-1, -1)) 
@@ -173,7 +171,7 @@ def minmax_action(grid: State, player: Player, depth: int = 0) -> tuple[Score, A
 def strategy_minmax(grid: State, player: Player) -> Action:
     return minmax_action(grid, player)[1]
 
-@lru_cache(maxsize=None)
+# Ecrire la fonction minmax qui étant donné un état de jeu renvoie dans un tuple les actions amenant au score optimal de la partie et ce score
 def minmax_actions(grid: State, player: Player, depth: int = 0) -> tuple[Score, list[Action]]:
     if final(grid):
         return (score(grid), [])
@@ -196,8 +194,186 @@ def minmax_actions(grid: State, player: Player, depth: int = 0) -> tuple[Score, 
                 best_actions.append(action)
     return (best_score, best_actions)
 
+# Minmax indeterministe
 def strategy_minmax_random(grid: State, player: Player) -> Action:
     _, actions = minmax_actions(grid, player)
+    return random.choice(actions)
+
+def memoize(func: Callable) -> Callable:
+    cache = {}
+
+    def memoized_func(*args):
+        if args not in cache:
+            cache[args] = func(*args)
+        return cache[args]
+
+    return memoized_func
+
+@memoize
+def minmax_cached(grid: State, player: Player) -> Score:
+    if final(grid):
+        return score(grid)
+    scores = []
+    for action in legals(grid):
+        next_grid = play(grid, player, action)
+        next_score = minmax_cached(next_grid, 3 - player)
+        scores.append(next_score)
+    if player == X:
+        return max(scores)
+    else:
+        return min(scores)
+
+@memoize
+def minmax_action_cached(grid: State, player: Player, depth: int = 0) -> tuple[Score, Action]:
+    if final(grid):
+        return (score(grid), (-1, -1)) 
+    best_score = float('-inf') if player == X else float('inf')
+    best_action = None
+    for action in legals(grid):
+        next_grid = play(grid, player, action)
+        next_score, _ = minmax_action_cached(next_grid, 3 - player, depth + 1)
+        if (player == X and next_score > best_score) or (player == O and next_score < best_score):
+            best_score = next_score
+            best_action = action
+    return (best_score, best_action)
+
+def strategy_minmax_cached(grid: State, player: Player) -> Action:
+    return minmax_action_cached(grid, player)[1]
+
+@memoize
+def minmax_actions_cached(grid: State, player: Player, depth: int = 0) -> tuple[Score, list[Action]]:
+    if final(grid):
+        return (score(grid), [])
+    best_score = float('-inf') if player == X else float('inf')
+    best_actions = []
+    for action in legals(grid):
+        next_grid = play(grid, player, action)
+        next_score, _ = minmax_actions_cached(next_grid, 3 - player, depth + 1)
+        if player == X:
+            if next_score > best_score:
+                best_score = next_score
+                best_actions = [action]
+            elif next_score == best_score:
+                best_actions.append(action)
+        else:
+            if next_score < best_score:
+                best_score = next_score
+                best_actions = [action]
+            elif next_score == best_score:
+                best_actions.append(action)
+    return (best_score, best_actions)
+
+def strategy_minmax_random_cached(grid: State, player: Player) -> Action:
+    _, actions = minmax_actions_cached(grid, player)
+    return random.choice(actions)
+
+def alphabeta(grid: State, player: Player, alpha: float = float('-inf'), beta: float = float('inf')) -> Score:
+    if final(grid):
+        return score(grid)
+    if player == X:
+        max_eval = float('-inf')
+        for action in legals(grid):
+            next_grid = play(grid, player, action)
+            eval = alphabeta(next_grid, 3 - player, alpha, beta)
+            max_eval = max(max_eval, eval)
+            alpha = max(alpha, eval)
+            if beta <= alpha:
+                break
+        return max_eval
+    else:
+        min_eval = float('inf')
+        for action in legals(grid):
+            next_grid = play(grid, player, action)
+            eval = alphabeta(next_grid, 3 - player, alpha, beta)
+            min_eval = min(min_eval, eval)
+            beta = min(beta, eval)
+            if beta <= alpha:
+                break
+        return min_eval
+    
+def rotate(grid: Grid) -> Grid:
+    return tuple(zip(*grid[::-1]))
+
+def reflect(grid: Grid) -> Grid:
+    return tuple(tuple(row[::-1]) for row in grid)
+
+def symmetries(grid: Grid) -> list[Grid]:
+    grids = []
+    g = grid
+    for _ in range(4):  # rotations
+        grids.append(g)
+        grids.append(reflect(g))
+        g = rotate(g)
+    return grids
+
+def canonical(grid: Grid) -> Grid:
+    return min(symmetries(grid))
+
+def memoize_with_symmetry(func: Callable) -> Callable:
+    cache = {}
+    def memoized_func(grid: State, player: Player, *args):
+        key = (canonical(grid), player, *args)
+        if key not in cache:
+            cache[key] = func(grid, player, *args)
+        return cache[key]
+    return memoized_func
+
+@memoize_with_symmetry
+def minmax_cached_with_symmetry(grid: State, player: Player) -> Score:
+    if final(grid):
+        return score(grid)
+    scores = []
+    for action in legals(grid):
+        next_grid = play(grid, player, action)
+        next_score = minmax_cached_with_symmetry(next_grid, 3 - player)
+        scores.append(next_score)
+    if player == X:
+        return max(scores)
+    else:
+        return min(scores)
+
+@memoize_with_symmetry
+def minmax_action_cached_with_symmetry(grid: State, player: Player, depth: int = 0) -> tuple[Score, Action]:
+    if final(grid):
+        return (score(grid), (-1, -1)) 
+    best_score = float('-inf') if player == X else float('inf')
+    best_action = None
+    for action in legals(grid):
+        next_grid = play(grid, player, action)
+        next_score, _ = minmax_action_cached_with_symmetry(next_grid, 3 - player, depth + 1)
+        if (player == X and next_score > best_score) or (player == O and next_score < best_score):
+            best_score = next_score
+            best_action = action
+    return (best_score, best_action)
+
+def strategy_minmax_cached_with_symmetry(grid: State, player: Player) -> Action:
+    return minmax_action_cached(grid, player)[1]
+
+@memoize_with_symmetry
+def minmax_actions_cached_with_symmetry(grid: State, player: Player, depth: int = 0) -> tuple[Score, list[Action]]:
+    if final(grid):
+        return (score(grid), [])
+    best_score = float('-inf') if player == X else float('inf')
+    best_actions = []
+    for action in legals(grid):
+        next_grid = play(grid, player, action)
+        next_score, _ = minmax_actions_cached_with_symmetry(next_grid, 3 - player, depth + 1)
+        if player == X:
+            if next_score > best_score:
+                best_score = next_score
+                best_actions = [action]
+            elif next_score == best_score:
+                best_actions.append(action)
+        else:
+            if next_score < best_score:
+                best_score = next_score
+                best_actions = [action]
+            elif next_score == best_score:
+                best_actions.append(action)
+    return (best_score, best_actions)
+
+def strategy_minmax_random_cached_with_symmetry(grid: State, player: Player) -> Action:
+    _, actions = minmax_actions_cached_with_symmetry(grid, player)
     return random.choice(actions)
 
 def test_performance(strategy: Strategy):
@@ -209,11 +385,39 @@ def test_performance(strategy: Strategy):
 def main():
     print("Test sans cache (first legal vs random):")
     tictactoe(strategy_first_legal, strategy_random)
-    print("\nTest minmax avec cache (minmax vs minmax):")
-    test_performance(strategy_minmax)
-    print("\nTest minmax_random avec cache (minmax_random vs minmax_random):")
-    test_performance(strategy_minmax_random)
 
+    print("Test minmax SANS cache :")
+    start = time.time()
+    minmax(GRID_0, X)
+    print(f"Temps sans cache : {time.time() - start:.4f} secondes")
+
+    print("\nTest minmax AVEC cache :")
+    start = time.time()
+    minmax_cached(GRID_0, X)
+    print(f"Temps avec cache : {time.time() - start:.4f} secondes")
+
+    print("\nTest minmax_random SANS cache :")
+    start = time.time()
+    minmax_actions(GRID_0, X)
+    print(f"Temps sans cache : {time.time() - start:.4f} secondes")
+
+    print("\nTest minmax_random AVEC cache :")
+    start = time.time()
+    minmax_actions_cached(GRID_0, X)
+    print(f"Temps avec cache : {time.time() - start:.4f} secondes")
+
+    print("\nTest alpha-beta :")
+    start = time.time()
+    alphabeta(GRID_0, X)    
+    print(f"Temps avec cache : {time.time() - start:.4f} secondes")
+
+    print("\nTest minmax_random AVEC cache ET symétrie :")
+    start = time.time()
+    minmax_actions_cached_with_symmetry(GRID_0, X)
+    print(f"Temps avec cache : {time.time() - start:.4f} secondes")
+
+    print("\nPartie entre stratégies avec cache :")
+    test_performance(strategy_minmax_cached)
 
 if __name__ == "__main__":
     main()
