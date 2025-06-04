@@ -291,6 +291,31 @@ def alphabeta(grid: State, player: Player, alpha: float = float('-inf'), beta: f
                 break
         return min_eval
     
+def alphabeta_action(grid: State, player: Player, alpha: float = float('-inf'), beta: float = float('inf')) -> tuple[Score, Action]:
+    if final(grid):
+        return (score(grid), (-1, -1)) 
+    best_score = float('-inf') if player == X else float('inf')
+    best_action = None
+    for action in legals(grid):
+        next_grid = play(grid, player, action)
+        eval_score, _ = alphabeta_action(next_grid, 3 - player, alpha, beta)
+        if player == X:
+            if eval_score > best_score:
+                best_score = eval_score
+                best_action = action
+            alpha = max(alpha, eval_score)
+        else:
+            if eval_score < best_score:
+                best_score = eval_score
+                best_action = action
+            beta = min(beta, eval_score)
+        if beta <= alpha:
+            break
+    return (best_score, best_action)
+
+def strategy_alphabeta(grid: State, player: Player) -> Action:
+    return alphabeta_action(grid, player)[1]
+    
 def rotate(grid: Grid) -> Grid:
     return tuple(zip(*grid[::-1]))
 
@@ -408,7 +433,7 @@ def main():
 
     print("\nTest alpha-beta :")
     start = time.time()
-    alphabeta(GRID_0, X)    
+    alphabeta_action(GRID_0, X)    
     print(f"Temps avec cache : {time.time() - start:.4f} secondes")
 
     print("\nTest minmax_random AVEC cache ET symétrie :")
