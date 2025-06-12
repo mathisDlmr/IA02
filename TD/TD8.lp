@@ -17,7 +17,7 @@ chiffre(X) :-
 generate1(X1, X2) :- 
     chiffre(X1), 
     chiffre(X2),
-    X1<X2.
+    X1<X2.     % Attention à l'ordre : d'abord on instancie X1 et X2 avant de les comparer
 
 test1(X1, X2, X) :-
     X =:= X1+X2.
