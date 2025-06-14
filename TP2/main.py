@@ -34,17 +34,17 @@ def encodage_cnf(sommets:list[int], graphe:list[(int,int)])->None:
             variables[f"S{sommet}{color}"] = str(i*3+j+1)
 
     for sommet in sommets:
-        at_least_one = [variables[f"S{sommet}{color}"] for color in colors]
+        at_least_one = [variables[f"S{sommet}{color}"] for color in colors]  # Pour chaque sommet on donne une couleur (R1 v V1 v B1)
         clauses.append(" ".join(at_least_one) + " 0")
 
     for sommet in sommets:
         for j in range(len(colors)):
             for k in range(j + 1, len(colors)):
-                clauses.append(f"-{variables[f'S{sommet}{colors[j]}']} -{variables[f'S{sommet}{colors[k]}']} 0")
+                clauses.append(f"-{variables[f'S{sommet}{colors[j]}']} -{variables[f'S{sommet}{colors[k]}']} 0")   # Pour chaque sommet on a au plus une couleur (¬R1 v ¬B1) ^ (¬B1 v ¬V1) ^ (¬R1 v ¬V1)
 
     for (a, b) in graphe:
         for color in colors:
-            clauses.append(f"-{variables[f'S{a}{color}']} -{variables[f'S{b}{color}']} 0")
+            clauses.append(f"-{variables[f'S{a}{color}']} -{variables[f'S{b}{color}']} 0")  # On ne peut avoir 2 sommets côtes à côtes de mm couleur : ¬(R1 ^ R2) <=> (¬R1 v ¬R2)
 
     nb_variables = len(variables)
     nb_clauses = len(clauses)
