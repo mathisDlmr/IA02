@@ -103,7 +103,7 @@ def score(grid: State) -> Score:
         return 0
 
 def pprint(grid: State):
-   for line in range(3):
+    for line in range(3):
         for col in range(3):
             if(grid[line][col]==0):
                 print('.', end=' ') 
@@ -112,6 +112,7 @@ def pprint(grid: State):
             else:
                 print('O', end=' ') 
         print()
+    print()
 
 def play(grid: State, player: Player, action: Action) -> State:
     new_state:[[int]] = grid_tuple_to_grid_list(grid)
@@ -169,7 +170,7 @@ def minmax_action(grid: State, player: Player, depth: int = 0) -> tuple[Score, A
     return (best_score, best_action)
 
 def strategy_minmax(grid: State, player: Player) -> Action:
-    return minmax_action(grid, player)[1]
+    return minmax_action(grid, player)[1]   # On joue l'action donnée par le minmax
 
 # Ecrire la fonction minmax qui étant donné un état de jeu renvoie dans un tuple les actions amenant au score optimal de la partie et ce score
 def minmax_actions(grid: State, player: Player, depth: int = 0) -> tuple[Score, list[Action]]:
@@ -413,36 +414,33 @@ def main():
 
     print("Test minmax SANS cache :")
     start = time.time()
-    minmax(GRID_0, X)
+    tictactoe(strategy_minmax, strategy_random)
     print(f"Temps sans cache : {time.time() - start:.4f} secondes")
 
     print("\nTest minmax AVEC cache :")
     start = time.time()
-    minmax_cached(GRID_0, X)
+    tictactoe(strategy_minmax_cached, strategy_random)
     print(f"Temps avec cache : {time.time() - start:.4f} secondes")
 
     print("\nTest minmax_random SANS cache :")
     start = time.time()
-    minmax_actions(GRID_0, X)
+    tictactoe(strategy_minmax_random, strategy_random)
     print(f"Temps sans cache : {time.time() - start:.4f} secondes")
 
     print("\nTest minmax_random AVEC cache :")
     start = time.time()
-    minmax_actions_cached(GRID_0, X)
+    tictactoe(strategy_minmax_random_cached, strategy_random)
     print(f"Temps avec cache : {time.time() - start:.4f} secondes")
 
     print("\nTest alpha-beta :")
     start = time.time()
-    alphabeta_action(GRID_0, X)    
+    tictactoe(strategy_alphabeta, strategy_random)
     print(f"Temps avec cache : {time.time() - start:.4f} secondes")
 
     print("\nTest minmax_random AVEC cache ET symétrie :")
     start = time.time()
-    minmax_actions_cached_with_symmetry(GRID_0, X)
+    tictactoe(strategy_minmax_random_cached_with_symmetry, strategy_random)
     print(f"Temps avec cache : {time.time() - start:.4f} secondes")
-
-    print("\nPartie entre stratégies avec cache :")
-    test_performance(strategy_minmax_cached)
 
 if __name__ == "__main__":
     main()
