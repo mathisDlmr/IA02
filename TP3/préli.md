@@ -22,7 +22,7 @@
 > - Toutes les valeurs sur une colonne sont différentes
 >   - Pas besoin de préciser l'unicité car on sait que chaque case aura une valeur, et que les 9 chiffres sont différents
 > - 9 valeurs sur 9 colonnes : **81 clauses**
->   - Il suffit donc d'avoir un at_lest_one de chaque valeur sur la colonne j
+>   - Il suffit donc d'avoir un at_least_one de chaque valeur sur la colonne j
 > - Toutes les valeurs sur une ligne sont différentes
 >   - Pas besoin de préciser l'unicité car on sait que chaque case aura une valeur, et que les 9 chiffres sont différents
 >   - Il suffit donc d'avoir un at_lest_one de chaque valeur sur la ligne i

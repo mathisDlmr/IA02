@@ -15,13 +15,13 @@ Il faut utiliser list(variables), copy(variables) ou variables [i] pour vraiment
 """
 
 def var(i: int, j: int, v: int) -> int:
-    return (i * 81) + (j * 9) + (v + 1)
+    return (i * 81) + (j * 9) + (v + 1)   # A chaque case on attribue la variable de valeur v+1 (car on suppose le sudoko de 0->8) + j*9 (car 9 valeurs par colonne) + i*81 (car 9*9 valeurs par lignes)
 
 def at_least_one() -> ClauseBase:
     res: ClauseBase = []
     for i in range(9):
         for j in range(9):
-            res.append([var(i, j, v) for v in range(9)])
+            res.append([var(i, j, v) for v in range(9)])  # Chaque case aura au moins un nombre : 0 en (0,0) v 1 en (0,0), ... <=> 1 v 2 v ... v 8
     return res
 
 def at_most_one() -> ClauseBase:
@@ -29,31 +29,39 @@ def at_most_one() -> ClauseBase:
     for i in range(9):
         for j in range(9):
             for v1, v2 in it.combinations(range(9), 2):
-                res.append([-var(i, j, v1), -var(i, j, v2)])
+                res.append([-var(i, j, v1), -var(i, j, v2)])  # Chaque case a un seul chiffre -> On fait une 2 Combi parmis 9 car on a ¬(V1 ^ V2) <=> ¬V1 v ¬V2
     return res
 
-def all_diff_unit(get_indices) -> ClauseBase:
+def create_line_constraints() -> ClauseBase:
     res: ClauseBase = []
-    for v in range(9):
-        for unit in range(9):
-            cells = get_indices(unit)
-            for i1, i2 in it.combinations(cells, 2):
-                res.append([-var(*i1, v), -var(*i2, v)])
+    for i in range(9):
+        for v in range(9):
+            res.append([var(i, j, v) for j in range(9)])   # Pour chaque ligne, pour chaque valeur, on a (0 en (0,0) v 0 en (1,0) v ... 0 en (8,0)) ^ (1 en (0,0) v ... v 1 en (8,0)) ...
     return res
 
-def ligne() -> ClauseBase:
-    return all_diff_unit(lambda i: [(i, j) for j in range(9)])
+def create_column_constraints() -> ClauseBase:
+    res: ClauseBase = []
+    for j in range(9): 
+        for v in range(9):
+            res.append([var(i, j, v) for i in range(9)])
+    return res
 
-def colonne() -> ClauseBase:
-    return all_diff_unit(lambda j: [(i, j) for i in range(9)])
+def create_box_constraints() -> ClauseBase:
+    res: ClauseBase = []
+    for box_i in range(3):
+        for box_j in range(3):
+            for v in range(9): 
+                clause = []
+                for i in range(3):
+                    for j in range(3):
+                        row = box_i * 3 + i
+                        col = box_j * 3 + j
+                        clause.append(var(row, col, v))   # On a 0 en (0,0) v 0 en (0,1) v ... v 0 en (2,2)
+                res.append(clause)
+    return res
 
-def carre() -> ClauseBase:
-    def block_indices(b):
-        bi, bj = divmod(b, 3)
-        return [(i, j) for i in range(bi * 3, bi * 3 + 3) for j in range(bj * 3, bj * 3 + 3)]
-    return all_diff_unit(block_indices)
-
-def insert_values(grid: Grid) -> ClauseBase:
+# Prend une grille comme paramètre et enregistre ses valeurs comme des faits dans le DIMAC
+def create_value_constraints(grid: Grid) -> ClauseBase:
     clauses: ClauseBase = []
     for i in range(9):
         for j in range(9):
@@ -77,6 +85,7 @@ def exec_gophersat(filename: str, cmd: str = "./gophersat", encoding: str = "utf
     model = lines[2][2:-2].split(" ")
     return True, [int(x) for x in model]
 
+# Met en forme la réponse en une Grid qu'on pourra afficher plus tard
 def model_to_grid(model: Model) -> Grid:
     grid: Grid = [[0 for _ in range(9)] for _ in range(9)]
     for literal in model:
@@ -86,6 +95,7 @@ def model_to_grid(model: Model) -> Grid:
             grid[i][j] = v + 1
     return grid
 
+# Affichage de la Grid mise en forme
 def pprint_grid(grid: Grid):
     for i in range(9):
         if i % 3 == 0 and i != 0:
@@ -113,10 +123,10 @@ def main():
     clauses = (
         at_least_one()
         + at_most_one()
-        + ligne()
-        + colonne()
-        + carre()
-        + insert_values(grid)
+        + create_line_constraints()
+        + create_column_constraints()
+        + create_box_constraints()
+        + create_value_constraints(grid)
     )
     print(len(clauses))
     write_dimacs_file(clauses, "./TP3/sudoku.cnf")
