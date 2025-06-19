@@ -35,4 +35,37 @@ retire_element([H|R], X, [H|Res]) :- dif(H, X), retire_element(R, X, Res).
 
 
 
-% Ex2 : predicat plus_petit, prédicat plus_grand, partition, prendre, pivot, tri
+
+partition(_, [], [], []).
+partition(X, [H|T], [H|L1], L2) :- 
+    H =< X,
+    partition(X, T, L1, L2).
+partition(X, [H|T], L1, [H|L2]) :- 
+    H > X,
+    partition(X, T, L1, L2).
+
+tri([], []).
+tri([X|R], LSorted) :-
+    partition(X, R, L1, L2),
+    tri(L1, L1Sorted),
+    tri(L2, L2Sorted),
+    append(L1Sorted, [X|L2Sorted], LSorted).
+
+
+
+
+
+
+retire_element(_, [], []).
+retire_element(X, [H|R], [H|L]) :- dif(X, H), retire_element(X, R, L).
+retire_element(X, [X|R], Res) :- retire_element(X, R, Res).
+
+retire_doublons([], []).
+retire_doublons([H|R], L) :- member(H, R), retire_doublons(R, L).
+retire_doublons([H|R1], [H|R2]) :- \+ member(H, R1),retire_doublons(R1, R2).
+
+union(E1, E2, E) :- concat(E1, E2, Etmp), retire_doublons(Etmp, E).
+
+intersection([], _, []).
+intersection([H|R1], L, [H|R2]) :- member(H, EL), intersection(R1, L, R2).
+intersection([H|R1], L, R2) :- \+ member(H, L), intersection(R1, L, R2).
