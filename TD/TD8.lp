@@ -6,8 +6,8 @@ element(X, [H|R]) :-
 
 liste_nombre(0, [0]).
 liste_nombre(X, [X|R]) :-
-    X > 0,
-    X2 is X - 1,
+    X > 0,   % Si oublie -> Call stack error
+    X2 is X - 1,   % Attention à bien définir N2 avant de l'utiliser
     liste_nombre(X2, R).
 
 chiffre(X) :- 
@@ -20,7 +20,7 @@ generate1(X1, X2) :-
     X1<X2.     % Attention à l'ordre : d'abord on instancie X1 et X2 avant de les comparer
 
 test1(X1, X2, X) :-
-    X =:= X1+X2.
+    X =:= X1+X2.    % Revoir les symboles de comparaison
 
 solve1(X1, X2, X) :-
     generate1(X1, X2),
@@ -38,7 +38,7 @@ habitant(espagnol).
 
 generate_maison(maison(X, Y, Z)) :-
     between(1, 3, X),
-    couleur(Y),
+    couleur(Y),     % Attention, X doit prendre la valeur du prédicat, et non le prédicat (ex : "vert" et pas "couleur(vert)")
     habitant(Z).
 
 generate_aux(0, []).

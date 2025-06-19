@@ -91,7 +91,7 @@ nation(italien; norvegien; espagnol).
 
 :- maison(X, _, espagnol), maison(Y, rouge, _), Y!=X+1.
 
-:- maison(_, X, norvegien), X!=bleu
+:- maison(_, X, norvegien), X!=bleu.
 
 :- maison(X, _, italien), X!=2.
 
