@@ -21,14 +21,14 @@ concat([], L2, L2).
 concat([H1|R1], L2, [H1|R3]) :- concat[R1, L2, R3]).  % Ce qui est stylé c'est qu'en vrai il peut deviner une liste si on lui donne la dernière liste
 
 inverse([], []).
-inverse([H|R], L) :- inverse(R, L2), concat(L2, [H], L).
+inverse([H|R], L) :- inverse(R, L2), concat(L2, [H], L).  % Attention H c'est juste le premier élément, il faut mettre [H]
 
 sous_liste([], _).
 sous_liste([H, R1], [H, R2]) :- sous_liste(R1, R2).
 sous_liste([H1|R1], [H2, R2]) :- dif(H1, H2), sous_liste([H1|R1], R2).
 
 retire_element([], _, []).
-retire_element([X|R], X, R).
+retire_element([X|_], X, H).
 retire_element([H|R], X, [H|Res]) :- dif(H, X), retire_element(R, X, Res).
 
 
