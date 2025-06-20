@@ -19,7 +19,7 @@ element(X, [H|R]) :- dif(X, H), element(X, R).
 
 % enleve(+E, +L1, -L2)
 enleve(_, [], []).
-enleve(X, [X|R], R).
+enleve(X, [X|R], R).   % Pour ne retirer que la premiere occurence il suffit de ne pas continuer l'appel
 enleve(X, [H|R], [H|Res]) :- dif(H, X), enleve(X, R, Res).
 
 % enleveBP(+Code1, +Code2, -Code1Bis, -Code2Bis)
