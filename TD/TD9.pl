@@ -107,6 +107,18 @@ nation(italien; norvegien; espagnol).
 
 
 
+#const n = 10.
+
+sommet(1..n).
+couleur(rouge; vert; bleu).
+
+{ coloration(X, Y) : couleur(Y) } = 1 :- sommet(X).  % On génère une vouleur pour chaque sommet et non un seul couple (sommet, couleur)
+
+arc(1,2). arc(2,3). arc(3,4). arc(4,5). arc(5,1).
+arc(1,6). arc(2,7). arc(3,8). arc(4,9). arc(5,10).
+arc(6,8). arc(8,10). arc(10,7). arc(7,9). arc(9,6).
+
+:- coloration(X, Z), coloration(Y, Z), arc(X, Y).  % Pas de tableau en ASP, on déclare des faits
 
 
 
@@ -116,3 +128,30 @@ nation(italien; norvegien; espagnol).
 
 
 
+
+
+
+
+
+
+
+
+
+domino(X, Y) :-
+    X = 0..6,
+    Y = 0..6,
+    X <= Y.
+    
+step(1..28).
+
+inverser_ou_pas(X, Y) :- domino(X, Y).
+inverser_ou_pas(Y, X) :- 
+    domino(X, Y),
+    X != Y.
+    
+{seq(d(X,Y), S) : inverser_ou_pas(X,Y)} = 1 :- step(S).   % on associe chaque domino à un step pour utiliser les 28 domino et les ordonner
+:- seq(d(X,Y), S), seq(d(X,Y),S'), S != S'.       % Chaque domino a un et un seul id
+:- seq(d(X,Y), _), seq(d(Y,X), _), X != Y.        % On a pas de doublon, mais on a des dominos doublons 
+:- seq(d(X,Y),S), seq(d(Y',Z), S+1), Y!=Y'.       % Deux domnios côtes à côtes respectent les contraints de proximité
+
+#show seq/2.
