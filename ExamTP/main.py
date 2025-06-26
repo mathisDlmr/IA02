@@ -1,6 +1,7 @@
 from typing import List, Tuple, Callable
 import random
 from math import sqrt, log
+import time
 
 Grid = tuple[tuple[int, ...], ...]
 State = Grid
@@ -105,10 +106,14 @@ def tictactoe_n(strategy_X: Strategy, strategy_O: Strategy, n:int, debug: bool =
     while not final(grid):
         if player == X:
             action = strategy_X(grid, X)
+            if action == (-1, -1):
+                break
             grid = play(grid, X, action)
             player = O
         else: 
             action = strategy_O(grid, O)
+            if action == (-1, -1):
+                break
             grid = play(grid, O, action)
             player = X
         pprint(grid)
@@ -121,6 +126,38 @@ def strategy_random(grid: State, player: Player) -> Action:
     legs: list[Action] = legals(grid)
     return (legs[random.randint(0, len(legs)-1)])
 
+def rotate_90(grid: Grid) -> Grid:
+    return tuple(zip(*grid[::-1]))
+
+def flip_horizontal(grid: Grid) -> Grid:
+    return tuple(row[::-1] for row in grid)
+
+def flip_vertical(grid: Grid) -> Grid:
+    return grid[::-1]
+
+def all_symmetries(grid: Grid) -> list[Grid]:   # Génère les 8 symétries (4 rotations et 2 flips)
+    symmetries = []
+    g = grid
+    for _ in range(4):
+        symmetries.append(g)
+        symmetries.append(flip_horizontal(g))
+        g = rotate_90(g)
+    return symmetries
+
+def minimal_symetries(grid: Grid) -> Grid:     # Renvoie la symétrie minimale parmis les flips et rotations
+    return min(all_symmetries(grid))
+
+def memoize(func: Callable) -> Callable:
+    cache = {}
+
+    def memoized_func(*args):
+        if args not in cache:
+            cache[args] = func(*args)
+        return cache[args]
+
+    return memoized_func
+
+@memoize
 def simulate(grid: State, player: Player) -> Score:
     while not final(grid):
         if player == X:
@@ -133,8 +170,9 @@ def simulate(grid: State, player: Player) -> Score:
             player = X
     return score(grid)
 
+@memoize
 def strategy_monte_carlo(grid: State, player: Player) -> Action:
-    bestAction: Action = ()
+    bestAction: Action = legals(grid)[0]
     bestMean: int = -1 if player == X else 0   # On initialise avec la pire moyenne possible
     for action in legals(grid):
         nextGrid: Grid = play(grid, player, action)   # Pour chaque action possible, on créé la prochaine grille
@@ -152,6 +190,7 @@ def strategy_monte_carlo(grid: State, player: Player) -> Action:
                 bestAction = action
     return bestAction
 
+@memoize
 def minmax_action_depth(grid: State, player: Player, f_score: ScoreFunction, depth: int) -> tuple[Score, Action] :
     if final(grid):
         return (score(grid), (-1, -1)) 
@@ -193,6 +232,7 @@ def UCB(grid: State, player: Player) -> tuple[Score, Action]:
 def strategy_UCB(grid: State, player: Player) -> Action:
     return(UCB(grid, player)[1])
 
+@memoize
 def minmax_action_ucb(grid: State, player: Player, f_score: ScoreFunction, depth: int) -> tuple[Score, Action] :
     pprint(grid)
     if final(grid):
@@ -203,7 +243,7 @@ def minmax_action_ucb(grid: State, player: Player, f_score: ScoreFunction, depth
     best_action: Action = ()
     for action in legals(grid):
         next_grid: Grid = play(grid, player, action)
-        next_score, _ = minmax_action_depth(next_grid, 3 - player, f_score, depth - 1)   # Quand on appelle avec 3 - player on inverse les joueurs
+        next_score, _ = minmax_action_ucb(next_grid, 3 - player, f_score, depth - 1)   # Quand on appelle avec 3 - player on inverse les joueurs
         if (player == X and next_score > best_score) or (player == O and next_score < best_score):
             best_score = next_score
             best_action = action
@@ -214,7 +254,9 @@ def strategy_minmax_ucb(grid: State, player: Player) -> Action:
     return action     # On utilise la meilleure action donnée par le minmax, avec MCS en fonction pour calculer le score et une profondeur MAX_DEPTH
 
 def main():
-    print(tictactoe_n(strategy_minmax_ucb, strategy_random, 4))
+    print(tictactoe_n(strategy_minmax_ucb, strategy_minmax_ucb, 5))
 
 if __name__ == "__main__":
+    start = time.time()
     main()
+    print(f"Temps : {time.time() - start:.4f} secondes")
